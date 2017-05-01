@@ -49,7 +49,9 @@ class LinearClassifier(object):
       # Hint: Use np.random.choice to generate indices. Sampling with         #
       # replacement is faster than sampling without replacement.              #
       #########################################################################
-      pass
+      indexs = np.random.choice(range(num_train), batch_size)
+      X_batch = X[indexs]
+      y_batch = y[indexs]
       #########################################################################
       #                       END OF YOUR CODE                                #
       #########################################################################
@@ -63,7 +65,7 @@ class LinearClassifier(object):
       # TODO:                                                                 #
       # Update the weights using the gradient and the learning rate.          #
       #########################################################################
-      pass
+      self.W = self.W - learning_rate*grad
       #########################################################################
       #                       END OF YOUR CODE                                #
       #########################################################################
@@ -86,12 +88,17 @@ class LinearClassifier(object):
       array of length N, and each element is an integer giving the predicted
       class.
     """
+
+
     y_pred = np.zeros(X.shape[1])
+
+    
     ###########################################################################
     # TODO:                                                                   #
     # Implement this method. Store the predicted labels in y_pred.            #
     ###########################################################################
-    pass
+    scores = np.dot(X, self.W)
+    y_pred = np.argmax(scores, axis = 1)
     ###########################################################################
     #                           END OF YOUR CODE                              #
     ###########################################################################

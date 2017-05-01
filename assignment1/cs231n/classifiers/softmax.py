@@ -27,11 +27,18 @@ def softmax_loss_naive(W, X, y, reg):
   loss_list = []
 
   scores = np.dot(X, W)
+  probs = np.exp(scores)
+  probs = probs/np.sum(probs, axis = 1, keepdims= True)
+  dscores = probs
+  dscores[range(N),y] -= 1
+  dW = np.dot(X.T, dscores)/N
+  dW += reg*W
 
   for i in range(N):
   	loss_i = -np.log(np.exp(scores[i][y[i]])/np.sum(np.exp(scores[i])))
   	loss_list.append(loss_i)
 
+  # print loss_list
   loss = np.sum(loss_list)/N + reg/2*np.sum(W**2)
 
   #############################################################################
@@ -57,13 +64,26 @@ def softmax_loss_vectorized(W, X, y, reg):
   loss = 0.0
   dW = np.zeros_like(W)
 
+  N = int(y.shape[0])
+  
+  scores = np.dot(X, W)
+  probs = np.exp(scores)
+  probs = probs/np.sum(probs, axis = 1, keepdims= True)
+  loss =  np.sum(-np.log(probs[range(N), y]))/N + 0.5*reg*np.sum(W*W)
+
+  dscores = probs
+  dscores[range(N),y] -= 1
+  dW = np.dot(X.T, dscores)/N
+  dW += reg*W
+
+
   #############################################################################
   # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
   # Store the loss in loss and the gradient in dW. If you are not careful     #
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  # pass
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
