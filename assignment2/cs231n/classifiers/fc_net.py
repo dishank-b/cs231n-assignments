@@ -47,7 +47,10 @@ class TwoLayerNet(object):
         # weights and biases using the keys 'W1' and 'b1' and second layer weights #
         # and biases using the keys 'W2' and 'b2'.                                 #
         ############################################################################
-        pass
+        self.params['W1'] = weight_scale * np.random.randn(input_dim, hidden_dim)
+        self.params['W2'] = weight_scale * np.random.randn(hidden_dim, num_classes)
+        self.params['b1'] = np.zeros(shape = hidden_dim)
+        self.params['b2'] = np.zeros(shape = num_classes)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -77,7 +80,18 @@ class TwoLayerNet(object):
         # TODO: Implement the forward pass for the two-layer net, computing the    #
         # class scores for X and storing them in the scores variable.              #
         ############################################################################
-        pass
+        W1 = self.params['W1']
+        W2 = self.params['W2']
+        b1 = self.params['b1']
+        b2 = self.params['b2']
+
+        N = X.shape[0]
+        D = np.prod(X.shape[1:])
+        reg = self.reg
+
+        output_hidden = np.maximum(0, np.dot(X, W1) + b1) 
+        scores = np.dot(output_hidden, W2) + b2
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -97,7 +111,25 @@ class TwoLayerNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
+        probs = np.exp(scores)/np.sum(np.exp(scores), axis = 1, keepdims= True)
+        data_loss = np.sum(-np.log(probs[range(N), y]))/N
+        loss = data_loss + 0.5*reg*np.sum(W1*W1) + 0.5*reg*np.sum(W2*W2)
+
+        dscores = probs
+        dscores[range(N), y] -= 1
+        
+        dW2 = np.dot(output_hidden.T, dscores)/N + reg*W2
+        db2 = np.sum(dscores, axis = 0)/N
+
+        dhidden = np.dot(dscores, W2.T)
+        dhidden[output_hidden <= 0] = 0
+        dW1 = np.dot(X.T, dhidden)/N + reg*W1
+        db1 = np.sum(dhidden, axis=0)/N
+        
+        grads['W2'] = dW2
+        grads['b2'] = db2
+        grads['W1'] = dW1
+        grads['b1'] = db1
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -163,7 +195,18 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to one and shift      #
         # parameters should be initialized to zero.                                #
         ############################################################################
-        pass
+        number_layers = self.num_layers
+        num_classes = num_classes
+
+        dims_list = hidden_dims
+        dims_list.insert(0, input_dim)
+        dims_list.append(num_classes)
+        for i in range(number_layers):
+        	a = "W"+str(i+1)
+        	b = "b"+str(i+1)
+        	self.params[a] = weight_scale * np.random.randn(dims_list[i], dims_list[i+1])
+        	self.params[b] = np.zeros(shape = dims_list[i+1])
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -221,7 +264,29 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        pass
+        number_layers = self.num_layers
+        reg = self.reg
+        N = X.shape[0]
+        output = np.zeros(shape = number_layers+1, dtype = object)
+        W_list = []
+        b_list = []
+
+        output[0] = X
+        for i in range(number_layers):
+        	W = self.params["W"+str(i+1)]
+        	b = self.params["b"+str(i+1)]
+        	W_list.append(W)
+        	b_list.append(b)
+        	if i ==0:
+	        	affine_output = np.dot(X, W) + b
+	        	layer_output = np.maximum(0, affine_output)
+	        	output[i+1] = layer_output
+	        affine_output = np.dot(output[i], W) + b
+	        layer_output = np.maximum(0, affine_output)
+	        output[i+1] = layer_output
+
+        
+        scores = output[-1]
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -244,7 +309,35 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
+
+        probs = np.exp(scores) / np.sum(np.exp(scores), axis = 1, keepdims = True)
+        data_loss = np.sum(-np.log(probs[range(N), y]))/N
+        reg_loss = 0
+        
+        for i in range(number_layers):
+        	W = self.params["W"+str(i+1)]
+        	reg_loss += np.sum(W*W)
+        reg_loss = 0.5*reg*reg_loss
+        loss = data_loss + reg_loss
+
+        dscores = probs
+        dscores[range(N), y] -= 1
+        for i in range(number_layers):
+        	W = W_list[number_layers-i-1]
+        	b = b_list[number_layers-i-1]
+        	if i ==0:
+	        	grads["dW"+str(number_layers-i)] = np.dot(output[number_layers-1].T, dscores)/N + reg*W
+	        	grads["db"+str(number_layers-i)] = np.sum(dscores, axis = 0)/N
+	        	dhidden = dscores
+	        	# print dhidden.shape 
+	        else:
+		        dhidden = np.dot(dhidden, W_list[number_layers-i].T)
+		        dhidden[output[number_layers-i]<=0] = 0
+		        # print dhidden.shape
+		        grads["dW"+str(number_layers-i)] = np.dot(output[number_layers-i-1].T, dhidden)/N + reg*W
+		        grads["db"+str(number_layers-i)] = np.sum(dhidden, axis=0)/N
+
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
